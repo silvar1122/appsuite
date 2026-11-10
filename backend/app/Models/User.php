@@ -47,4 +47,25 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(Role::class);
     }
+
+    public function hasRole(string $slug): bool
+    {
+        return $this->roles()
+            ->where('slug', $slug)
+            ->exists();
+    }
+    public function isActive(): bool
+    {
+        return $this->account_status === 'active';
+    }
+
+    public function hasPermission(string $code): bool
+    {
+        return $this->roles()
+            ->whereHas(
+                'permissions',
+                fn($query) => $query->where('permissions.code', $code),
+            )
+            ->exists();
+    }
 }
