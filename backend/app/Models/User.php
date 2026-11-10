@@ -68,4 +68,16 @@ class User extends Authenticatable
             )
             ->exists();
     }
+
+    public function requiresMfa(): bool
+    {
+        return $this->hasRole('asset_manager')
+            || $this->roles()->where('mfa_required', true)->exists();
+    }
+
+    public function hasConfirmedTwoFactor(): bool
+    {
+        return filled($this->two_factor_secret)
+            && $this->two_factor_confirmed_at !== null;
+    }
 }

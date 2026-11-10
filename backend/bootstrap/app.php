@@ -5,6 +5,8 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Http\Middleware\RequirePermission;
+use App\Http\Middleware\RequireCompletedMfa;
+use App\Http\Middleware\PreventRequiredMfaDisable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,6 +22,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'permission' => RequirePermission::class,
+            'mfa.complete' => RequireCompletedMfa::class,
+            'mfa.protect-disable' => PreventRequiredMfaDisable::class,
         ]);
 
         $middleware->statefulApi();
