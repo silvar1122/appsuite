@@ -103,7 +103,7 @@ return [
 
    
 
-    'middleware' => ['web', 'mfa.protect-disable'],
+    'middleware' => ['web', 'mfa.protect-disable',  'account.active',],
 
     /*
     |--------------------------------------------------------------------------

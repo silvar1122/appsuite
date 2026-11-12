@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use App\Http\Middleware\RequirePermission;
 use App\Http\Middleware\RequireCompletedMfa;
 use App\Http\Middleware\PreventRequiredMfaDisable;
+use App\Http\Middleware\RequireActiveAccount;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -24,6 +25,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => RequirePermission::class,
             'mfa.complete' => RequireCompletedMfa::class,
             'mfa.protect-disable' => PreventRequiredMfaDisable::class,
+            'account.active' => RequireActiveAccount::class,
         ]);
 
         $middleware->statefulApi();
