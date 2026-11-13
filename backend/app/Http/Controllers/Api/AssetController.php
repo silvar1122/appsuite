@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Asset;
 use App\Models\User;
+use App\Services\AuditLogger;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AssetController extends Controller
 {
@@ -110,5 +112,38 @@ class AssetController extends Controller
             'per_page' => $paginator->perPage(),
             'total' => $paginator->total(),
         ];
+    }
+
+    public function store(Request $request, AuditLogger $auditLogger): JsonResponse
+    {
+        $actor = $request->user();
+
+        if (!$actor instanceof User) {
+            abort(401);
+        }
+
+        $validated = $request->validate([
+            'asset_tag' => ['required', 'string', 'max:50', 'unique:assets,asset_tag'],
+            'type' => ['required', 'string', 'max:100'],
+            'manufacturer' => ['nullable', 'string', 'max:120'],
+            'model' => ['nullable', 'string', 'max:120'],
+            'serial_number' => ['nullable', 'string', 'max:120', 'unique:assets,serial_number'],
+        ]);
+
+        $asset = DB::transaction(function () use ($validated, $actor, $auditLogger, $request) {
+            $asset = new Asset();
+            $asset->fill($validated);
+            $asset->save();
+
+            $auditLogger->assetCreated($actor, $asset, $request->ip());
+
+            return $asset;
+        });
+
+        $asset->loadMissing('currentAssignment.user:id,first_name,last_name');
+
+        return response()->json([
+            'data' => $this->assetData($asset),
+        ], 201);
     }
 }

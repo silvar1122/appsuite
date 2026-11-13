@@ -57,4 +57,8 @@ Route::middleware([
     //assets
     Route::get('/assets', [AssetController::class, 'index']);
     Route::get('/assets/{asset}', [AssetController::class, 'show']);
+    Route::post('/assets', [AssetController::class, 'store'])
+    ->middleware('permission:assets.create');
+
+    
 });
