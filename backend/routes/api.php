@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AssetAssignmentController;
+use App\Http\Controllers\Api\AssetController;
 
 
 \Illuminate\Support\Facades\Route::get('/health', function () {
@@ -51,4 +52,9 @@ Route::middleware([
         '/me/asset-history',
         [AssetAssignmentController::class, 'mine'],
     )->middleware('permission:assignments.view_own_history');
+
+
+    //assets
+    Route::get('/assets', [AssetController::class, 'index']);
+    Route::get('/assets/{asset}', [AssetController::class, 'show']);
 });
