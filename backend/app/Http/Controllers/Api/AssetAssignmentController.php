@@ -15,6 +15,7 @@ use App\Services\AuditLogger;
 
 class AssetAssignmentController extends Controller
 {
+    //add asset
     public function store(Request $request, Asset $asset, AuditLogger $auditLogger): JsonResponse
     {
         $actor = $request->user();
@@ -59,7 +60,7 @@ class AssetAssignmentController extends Controller
             $assignment->assigned_at = now();
             $assignment->save();
 
-            $auditLogger->assetAssigned($actor,$assignment, $request->ip());
+            $auditLogger->assetAssigned($actor, $assignment, $request->ip());
 
             return $assignment;
         });
@@ -73,14 +74,16 @@ class AssetAssignmentController extends Controller
             ],
         ], 201);
     }
+
+    //return asset
     public function close(Request $request, AssetAssignment $assignment, AuditLogger $auditLogger): JsonResponse
     {
-         $actor = $request->user();
+        $actor = $request->user();
 
         if (!($actor instanceof User)) {
             abort(401);
         }
-       
+
         $validated = $request->validate([
             'return_reason' => ['required', 'string', 'max:1000'],
         ]);
@@ -103,7 +106,7 @@ class AssetAssignmentController extends Controller
             $lockedAssignment->returned_at = now();
             $lockedAssignment->return_reason = $validated['return_reason'];
             $lockedAssignment->save();
-            $auditLogger->assetReturned($actor,$lockedAssignment, $request->ip());
+            $auditLogger->assetReturned($actor, $lockedAssignment, $request->ip());
 
             return $lockedAssignment;
         });
@@ -116,6 +119,77 @@ class AssetAssignmentController extends Controller
                 'assigned_at' => $closedAssignment->assigned_at->toISOString(),
                 'returned_at' => $closedAssignment->returned_at->toISOString(),
                 'return_reason' => $closedAssignment->return_reason,
+            ],
+        ]);
+    }
+
+
+    //get asset assigment history for asset
+    public function forAsset(Asset $asset): JsonResponse
+    {
+        $assignments = $asset->assignments()
+            ->with('user:id,first_name,last_name')
+            ->orderByDesc('assigned_at')
+            ->paginate(25);
+
+        return response()->json([
+            'data' => $assignments->getCollection()
+                ->map(fn(AssetAssignment $assignment) => [
+                    'id' => $assignment->id,
+                    'employee' => [
+                        'id' => $assignment->user->id,
+                        'first_name' => $assignment->user->first_name,
+                        'last_name' => $assignment->user->last_name,
+                    ],
+                    'assigned_at' => $assignment->assigned_at->toISOString(),
+                    'returned_at' => $assignment->returned_at?->toISOString(),
+                    'return_reason' => $assignment->return_reason,
+                ])
+                ->values(),
+            'meta' => [
+                'current_page' => $assignments->currentPage(),
+                'last_page' => $assignments->lastPage(),
+                'per_page' => $assignments->perPage(),
+                'total' => $assignments->total(),
+            ],
+        ]);
+    }
+
+    //get asset assigment history for user
+    public function mine(Request $request): JsonResponse
+    {
+        $employee = $request->user();
+
+        if (!($employee instanceof User)) {
+            abort(401);
+        }
+
+        $assignments = $employee->assetAssignments()
+            ->with('asset:id,asset_tag,type,manufacturer,model')
+            ->orderByDesc('assigned_at')
+            ->paginate(25);
+
+        return response()->json([
+            'data' => $assignments->getCollection()
+                ->map(fn(AssetAssignment $assignment) => [
+                    'id' => $assignment->id,
+                    'asset' => [
+                        'id' => $assignment->asset->id,
+                        'asset_tag' => $assignment->asset->asset_tag,
+                        'type' => $assignment->asset->type,
+                        'manufacturer' => $assignment->asset->manufacturer,
+                        'model' => $assignment->asset->model,
+                    ],
+                    'assigned_at' => $assignment->assigned_at->toISOString(),
+                    'returned_at' => $assignment->returned_at?->toISOString(),
+                    'return_reason' => $assignment->return_reason,
+                ])
+                ->values(),
+            'meta' => [
+                'current_page' => $assignments->currentPage(),
+                'last_page' => $assignments->lastPage(),
+                'per_page' => $assignments->perPage(),
+                'total' => $assignments->total(),
             ],
         ]);
     }

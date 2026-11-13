@@ -39,4 +39,16 @@ Route::middleware([
         '/assignments/{assignment}/return',
         [AssetAssignmentController::class, 'close'],
     )->middleware('permission:assignments.return');
+
+
+    //asset assigment history
+    Route::get(
+        '/assets/{asset}/assignments',
+        [AssetAssignmentController::class, 'forAsset'],
+    )->middleware('permission:assignments.view_all');
+
+    Route::get(
+        '/me/asset-history',
+        [AssetAssignmentController::class, 'mine'],
+    )->middleware('permission:assignments.view_own_history');
 });
