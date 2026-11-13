@@ -10,6 +10,8 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class AssetController extends Controller
 {
@@ -145,5 +147,71 @@ class AssetController extends Controller
         return response()->json([
             'data' => $this->assetData($asset),
         ], 201);
+    }
+
+    public function update(
+        Request $request,
+        Asset $asset,
+        AuditLogger $auditLogger,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        if (!$actor instanceof User) {
+            abort(401);
+        }
+
+        $validated = $request->validate([
+            'asset_tag' => [
+                'sometimes',
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('assets', 'asset_tag')->ignore($asset->id),
+            ],
+            'type' => ['sometimes', 'required', 'string', 'max:100'],
+            'manufacturer' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'model' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'serial_number' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:120',
+                Rule::unique('assets', 'serial_number')->ignore($asset->id),
+            ],
+        ]);
+
+        if ($validated === []) {
+            throw ValidationException::withMessages([
+                'asset' => 'Provide at least one field to update.',
+            ]);
+        }
+
+        $updatedAsset = DB::transaction(function () use ($asset, $validated, $actor, $auditLogger, $request ) {
+            $lockedAsset = Asset::query()
+                ->lockForUpdate()
+                ->findOrFail($asset->id);
+
+            $lockedAsset->fill($validated);
+            $changedFields = array_keys($lockedAsset->getDirty());
+
+            if ($changedFields !== []) {
+                $lockedAsset->save();
+
+                $auditLogger->assetUpdated(
+                    $actor,
+                    $lockedAsset,
+                    $changedFields,
+                    $request->ip()
+                );
+            }
+
+            return $lockedAsset;
+        });
+
+        $updatedAsset->loadMissing('currentAssignment.user:id,first_name,last_name');
+
+        return response()->json([
+            'data' => $this->assetData($updatedAsset),
+        ]);
     }
 }
