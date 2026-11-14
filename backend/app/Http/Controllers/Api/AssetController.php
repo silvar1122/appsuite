@@ -186,7 +186,7 @@ class AssetController extends Controller
             ]);
         }
 
-        $updatedAsset = DB::transaction(function () use ($asset, $validated, $actor, $auditLogger, $request ) {
+        $updatedAsset = DB::transaction(function () use ($asset, $validated, $actor, $auditLogger, $request) {
             $lockedAsset = Asset::query()
                 ->lockForUpdate()
                 ->findOrFail($asset->id);
@@ -212,6 +212,54 @@ class AssetController extends Controller
 
         return response()->json([
             'data' => $this->assetData($updatedAsset),
+        ]);
+    }
+
+
+    public function retire(
+        Request $request,
+        Asset $asset,
+        AuditLogger $auditLogger,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        if (!$actor instanceof User) {
+            abort(401);
+        }
+
+        $retiredAsset = DB::transaction(function () use ($asset, $actor, $auditLogger, $request) {
+            $lockedAsset = Asset::query()
+                ->lockForUpdate()
+                ->findOrFail($asset->id);
+
+            if ($lockedAsset->status !== 'active') {
+                throw ValidationException::withMessages([
+                    'asset' => 'Only active assets can be retired.',
+                ]);
+            }
+
+            if ($lockedAsset->currentAssignment()->exists()) {
+                throw ValidationException::withMessages([
+                    'asset' => 'Return the asset before retiring it.',
+                ]);
+            }
+
+            $lockedAsset->status = 'retired';
+            $lockedAsset->save();
+
+            $auditLogger->assetRetired(
+                $actor,
+                $lockedAsset,
+                $request->ip(),
+            );
+
+            return $lockedAsset;
+        });
+
+        $retiredAsset->loadMissing('currentAssignment.user:id,first_name,last_name');
+
+        return response()->json([
+            'data' => $this->assetData($retiredAsset),
         ]);
     }
 }

@@ -65,5 +65,8 @@ Route::middleware([
     Route::patch('/assets/{asset}', [AssetController::class, 'update'])
         ->middleware('permission:assets.update');
 
+    Route::post('/assets/{asset}/retire', [AssetController::class, 'retire'])
+        ->middleware('permission:assets.retire');
+
 
 });
