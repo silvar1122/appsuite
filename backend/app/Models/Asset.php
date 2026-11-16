@@ -29,4 +29,9 @@ class Asset extends Model
         return $this->hasOne(AssetAssignment::class)
             ->whereNull('returned_at');
     }
+
+    public function tickets(): HasMany
+    {
+        return $this->hasMany(Ticket::class);
+    }
 }

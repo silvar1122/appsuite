@@ -6,6 +6,7 @@ use App\Models\Asset;
 use App\Models\AssetAssignment;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Models\Ticket;
 
 class AuditLogger
 {
@@ -101,6 +102,46 @@ class AuditLogger
             [
                 'asset_id' => $assignment->asset_id,
                 'employee_id' => $assignment->user_id,
+            ],
+            $ipAddress,
+        );
+    }
+
+    public function ticketCreated(
+        User $actor,
+        Ticket $ticket,
+        ?string $ipAddress,
+    ): void {
+        $this->write(
+            'ticket.created',
+            $actor,
+            'ticket',
+            $ticket->id,
+            [
+                'asset_id' => $ticket->asset_id,
+                'assignment_id' => $ticket->assignment_id,
+                'reporter_user_id' => $ticket->reporter_user_id,
+            ],
+            $ipAddress,
+        );
+    }
+
+    public function ticketClosed(
+        User $actor,
+        Ticket $ticket,
+        ?string $ipAddress,
+    ): void {
+        $this->write(
+            'ticket.closed',
+            $actor,
+            'ticket',
+            $ticket->id,
+            [
+                'asset_id' => $ticket->asset_id,
+                'assignment_id' => $ticket->assignment_id,
+                'reporter_user_id' => $ticket->reporter_user_id,
+                'old_status' => 'open',
+                'new_status' => 'closed',
             ],
             $ipAddress,
         );

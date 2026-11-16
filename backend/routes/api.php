@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AssetAssignmentController;
 use App\Http\Controllers\Api\AssetController;
+use App\Http\Controllers\Api\TicketController;
+
 
 
 \Illuminate\Support\Facades\Route::get('/health', function () {
@@ -67,6 +69,15 @@ Route::middleware([
 
     Route::post('/assets/{asset}/retire', [AssetController::class, 'retire'])
         ->middleware('permission:assets.retire');
+
+        // Ticket
+    Route::post('/assets/{asset}/tickets', [TicketController::class, 'store'])
+    ->middleware('permission:tickets.create');
+
+    Route::patch('/tickets/{ticket}/close', [TicketController::class, 'close'])
+    ->middleware('permission:tickets.close');
+
+    Route::get('/tickets', [TicketController::class, 'index']);
 
 
 });
