@@ -12,7 +12,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      test: [ "CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent" ]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -36,6 +36,13 @@ services:
       DB_DATABASE: ${MYSQL_DATABASE:?Set MYSQL_DATABASE in .env}
       DB_USERNAME: ${MYSQL_USER:?Set MYSQL_USER in .env}
       DB_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MAIL_MAILER: smtp
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+      MAIL_FROM_ADDRESS: "hello@example.com"
+      MAIL_FROM_NAME: "AppSuite"
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -54,6 +61,11 @@ services:
     ports:
       - "127.0.0.1:5173:5173"
 
+  mailpit:
+    image: axllent/mailpit:v1.27.4
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
 volumes:
   mysql_data:
   backend_vendor:
