@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AssetAssignmentController;
 use App\Http\Controllers\Api\AssetController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Api\EmployeeController;
 
 
 
@@ -78,6 +79,10 @@ Route::middleware([
     ->middleware('permission:tickets.close');
 
     Route::get('/tickets', [TicketController::class, 'index']);
+
+    //employee
+    Route::post('/employees', [EmployeeController::class, 'store'])
+    ->middleware('permission:employees.create');
 
 
 });
