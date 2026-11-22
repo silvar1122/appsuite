@@ -71,24 +71,29 @@ Route::middleware([
     Route::post('/assets/{asset}/retire', [AssetController::class, 'retire'])
         ->middleware('permission:assets.retire');
 
-        // Ticket
+    // Ticket
     Route::post('/assets/{asset}/tickets', [TicketController::class, 'store'])
-    ->middleware('permission:tickets.create');
+        ->middleware('permission:tickets.create');
 
     Route::patch('/tickets/{ticket}/close', [TicketController::class, 'close'])
-    ->middleware('permission:tickets.close');
+        ->middleware('permission:tickets.close');
 
     Route::get('/tickets', [TicketController::class, 'index']);
 
     //employee
     Route::post('/employees', [EmployeeController::class, 'store'])
-    ->middleware('permission:employees.create');
+        ->middleware('permission:employees.create');
 
     Route::get('/employees', [EmployeeController::class, 'index'])
-    ->middleware('permission:employees.view_all');
+        ->middleware('permission:employees.view_all');
 
     Route::patch('/employees/{employee}', [EmployeeController::class, 'update'])
-    ->middleware('permission:employees.update');
+        ->middleware('permission:employees.update');
+
+    Route::post(
+        '/employees/{employee}/deactivate',
+        [EmployeeController::class, 'deactivate'],
+    )->middleware('permission:employees.deactivate');
 
 
 });

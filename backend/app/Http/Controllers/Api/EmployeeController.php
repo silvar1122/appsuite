@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Models\Asset;
+use App\Models\AssetAssignment;
 use Throwable;
 
 class EmployeeController extends Controller
@@ -209,6 +211,86 @@ class EmployeeController extends Controller
                 'account_status' => $updatedEmployee->account_status,
                 'department_id' => $updatedEmployee->department_id,
                 'location_id' => $updatedEmployee->location_id,
+            ],
+        ]);
+    }
+
+    public function deactivate(
+        Request $request,
+        User $employee,
+        AuditLogger $auditLogger,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        if (!$actor instanceof User) {
+            abort(401);
+        }
+
+        if ($actor->is($employee)) {
+            throw ValidationException::withMessages([
+                'employee' => 'You cannot deactivate your own account.',
+            ]);
+        }
+
+        $deactivatedEmployee = DB::transaction(function () use ($employee, $actor, $auditLogger, $request, ) {
+            // Lock assigned assets first, matching assignment/return lock ordering.
+            $assetIds = AssetAssignment::query()
+                ->where('user_id', $employee->id)
+                ->whereNull('returned_at')
+                ->orderBy('asset_id')
+                ->pluck('asset_id');
+
+            Asset::query()
+                ->whereIn('id', $assetIds)
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $lockedEmployee = User::query()
+                ->lockForUpdate()
+                ->findOrFail($employee->id);
+
+            if ($lockedEmployee->account_status !== 'active') {
+                throw ValidationException::withMessages([
+                    'employee' => 'This account is already deactivated.',
+                ]);
+            }
+
+            $hasOpenAssignments = AssetAssignment::query()
+                ->where('user_id', $lockedEmployee->id)
+                ->whereNull('returned_at')
+                ->exists();
+
+            if ($hasOpenAssignments) {
+                throw ValidationException::withMessages([
+                    'employee' => 'Return all assigned assets and record a return reason before deactivation.',
+                ]);
+            }
+
+            Password::broker()->deleteToken($lockedEmployee);
+
+            $lockedEmployee->account_status = 'deactivated';
+            $lockedEmployee->save();
+
+            if (config('session.driver') === 'database') {
+                DB::table(config('session.table', 'sessions'))
+                    ->where('user_id', $lockedEmployee->id)
+                    ->delete();
+            }
+
+            $auditLogger->employeeDeactivated(
+                $actor,
+                $lockedEmployee,
+                $request->ip(),
+            );
+
+            return $lockedEmployee;
+        });
+
+        return response()->json([
+            'data' => [
+                'id' => $deactivatedEmployee->id,
+                'account_status' => $deactivatedEmployee->account_status,
             ],
         ]);
     }

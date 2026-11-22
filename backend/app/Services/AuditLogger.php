@@ -191,6 +191,24 @@ class AuditLogger
         );
     }
 
+    public function employeeDeactivated(
+        User $actor,
+        User $employee,
+        ?string $ipAddress,
+    ): void {
+        $this->write(
+            'employee.deactivated',
+            $actor,
+            'user',
+            $employee->id,
+            [
+                'old_status' => 'active',
+                'new_status' => 'deactivated',
+            ],
+            $ipAddress,
+        );
+    }
+
     private function write(
         string $eventType,
         User $actor,
