@@ -147,6 +147,22 @@ class AuditLogger
         );
     }
 
+    public function employeeCreated(
+        User $actor,
+        User $employee,
+        ?string $ipAddress,
+    ): void {
+        $this->write(
+            'employee.created',
+            $actor,
+            'user',
+            $employee->id,
+            ['role_slug' => 'staff_member'],
+            $ipAddress,
+        );
+    }
+
+
     private function write(
         string $eventType,
         User $actor,
