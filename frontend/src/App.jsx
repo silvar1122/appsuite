@@ -1,121 +1,190 @@
 import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
 import './App.css'
 
-function App() {
-  const [count, setCount] = useState(0)
+function getCookie(name) {
+  const prefix = `${name}=`
+  const cookie = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(prefix))
+
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : ''
+}
+
+function SetPasswordPage() {
+  const params = new URLSearchParams(window.location.search)
+  const token = params.get('token') ?? ''
+  const email = params.get('email') ?? ''
+
+  const [password, setPassword] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [error, setError] = useState('')
+  const [complete, setComplete] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  async function handleSubmit(event) {
+    event.preventDefault()
+    setError('')
+    setSubmitting(true)
+
+    try {
+      const csrfResponse = await fetch('/sanctum/csrf-cookie', {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+      })
+
+      if (!csrfResponse.ok || !getCookie('XSRF-TOKEN')) {
+        throw new Error('Could not start secure password setup. Please try again.')
+      }
+
+      const response = await fetch('/reset-password', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': getCookie('XSRF-TOKEN'),
+        },
+        body: JSON.stringify({
+          token,
+          email,
+          password,
+          password_confirmation: passwordConfirmation,
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        const validationError =
+          response.status === 422
+            ? Object.values(result.errors ?? {}).flat()[0]
+            : null
+
+        if (response.status === 429) {
+          throw new Error('Too many attempts. Please wait and try again.')
+        }
+
+        throw new Error(
+          validationError ??
+            'The password link may be invalid or expired. Request a new link.',
+        )
+      }
+
+      setComplete(true)
+      setPassword('')
+      setPasswordConfirmation('')
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error && requestError.message !== 'Failed to fetch'
+          ? requestError.message
+          : 'Could not reach the server. Please try again.',
+      )
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (!token || !email) {
+    return (
+      <section className="form-card">
+        <h1>Set your password</h1>
+        <p className="notice" role="alert">
+          This link is incomplete. Ask for a new password setup link.
+        </p>
+      </section>
+    )
+  }
+
+  if (complete) {
+    return (
+      <section className="form-card">
+        <h1>Password set</h1>
+        <p className="notice" role="status">
+          Your password has been set. You can now sign in.
+        </p>
+      </section>
+    )
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
+    <section className="form-card">
+      <h1>Set your password</h1>
+      <p className="intro">
+        Choose a password to activate your account.
+      </p>
+
+      <form onSubmit={handleSubmit}>
+        <label className="field">
+          <span>Email address</span>
+          <input type="email" value={email} readOnly />
+        </label>
+
+        <label className="field">
+          <span>New password</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={15}
+            maxLength={128}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+          />
+        </label>
+
+        <p className="hint">
+          Use 15–128 characters. Avoid passwords found in known data breaches.
+        </p>
+
+        <label className="field">
+          <span>Confirm new password</span>
+          <input
+            type="password"
+            autoComplete="new-password"
+            minLength={15}
+            maxLength={128}
+            value={passwordConfirmation}
+            onChange={(event) => setPasswordConfirmation(event.target.value)}
+            required
+          />
+        </label>
+
+        {error && (
+          <p className="notice error" role="alert">
+            {error}
           </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
+        )}
+
+        <button type="submit" disabled={submitting}>
+          {submitting ? 'Setting password…' : 'Set password'}
         </button>
-      </section>
+      </form>
+    </section>
+  )
+}
 
-      <div className="ticks"></div>
+function App() {
+  const isSetPasswordPage = window.location.pathname === '/set-password'
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+  return (
+    <main className="app-shell">
+      <header className="site-header">Company Asset Register</header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <div className="page-content">
+        {isSetPasswordPage ? (
+          <SetPasswordPage />
+        ) : (
+          <section className="form-card">
+            <h1>Company Asset Register</h1>
+            <p className="intro">
+              Use the password setup link sent to your email to activate your account.
+            </p>
+          </section>
+        )}
+      </div>
+
+      <footer className="site-footer">IT asset management</footer>
+    </main>
   )
 }
 
