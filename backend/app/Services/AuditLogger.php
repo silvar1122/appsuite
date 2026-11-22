@@ -18,6 +18,14 @@ class AuditLogger
         'serial_number',
     ];
 
+    private const EMPLOYEE_FIELDS = [
+        'first_name',
+        'last_name',
+        'email',
+        'department_id',
+        'location_id',
+    ];
+
     public function assetCreated(
         User $actor,
         Asset $asset,
@@ -162,6 +170,26 @@ class AuditLogger
         );
     }
 
+
+    public function employeeUpdated(
+        User $actor,
+        User $employee,
+        array $changedFields,
+        ?string $ipAddress,
+    ): void {
+        $this->write(
+            'employee.updated',
+            $actor,
+            'user',
+            $employee->id,
+            [
+                'changed_fields' => array_values(
+                    array_intersect(self::EMPLOYEE_FIELDS, $changedFields),
+                ),
+            ],
+            $ipAddress,
+        );
+    }
 
     private function write(
         string $eventType,

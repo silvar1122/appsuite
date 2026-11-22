@@ -87,5 +87,8 @@ Route::middleware([
     Route::get('/employees', [EmployeeController::class, 'index'])
     ->middleware('permission:employees.view_all');
 
+    Route::patch('/employees/{employee}', [EmployeeController::class, 'update'])
+    ->middleware('permission:employees.update');
+
 
 });

@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class EmployeeController extends Controller
@@ -129,6 +130,85 @@ class EmployeeController extends Controller
                 'last_page' => $paginator->lastPage(),
                 'per_page' => $paginator->perPage(),
                 'total' => $paginator->total(),
+            ],
+        ]);
+    }
+
+    public function update(
+        Request $request,
+        User $employee,
+        AuditLogger $auditLogger,
+    ): JsonResponse {
+        $actor = $request->user();
+
+        if (!$actor instanceof User) {
+            abort(401);
+        }
+
+        $validated = $request->validate([
+            'first_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'last_name' => ['sometimes', 'required', 'string', 'max:100'],
+            'email' => [
+                'sometimes',
+                'required',
+                'string',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($employee->id),
+            ],
+            'department_id' => ['sometimes', 'nullable', 'integer', 'exists:departments,id'],
+            'location_id' => ['sometimes', 'nullable', 'integer', 'exists:locations,id'],
+        ]);
+
+        if ($validated === []) {
+            throw ValidationException::withMessages([
+                'employee' => 'Provide at least one field to update.',
+            ]);
+        }
+
+        if (isset($validated['email'])) {
+            $validated['email'] = Str::lower($validated['email']);
+        }
+
+        $updatedEmployee = DB::transaction(function () use ($employee, $validated, $actor, $auditLogger, $request, ) {
+            $lockedEmployee = User::query()
+                ->lockForUpdate()
+                ->findOrFail($employee->id);
+
+            $emailChanged = isset($validated['email'])
+                && $validated['email'] !== $lockedEmployee->email;
+
+            if ($emailChanged) {
+                // Invalidate any reset link addressed to the old email.
+                Password::broker()->deleteToken($lockedEmployee);
+            }
+
+            $lockedEmployee->fill($validated);
+            $changedFields = array_keys($lockedEmployee->getDirty());
+
+            if ($changedFields !== []) {
+                $lockedEmployee->save();
+
+                $auditLogger->employeeUpdated(
+                    $actor,
+                    $lockedEmployee,
+                    $changedFields,
+                    $request->ip(),
+                );
+            }
+
+            return $lockedEmployee;
+        });
+
+        return response()->json([
+            'data' => [
+                'id' => $updatedEmployee->id,
+                'first_name' => $updatedEmployee->first_name,
+                'last_name' => $updatedEmployee->last_name,
+                'email' => $updatedEmployee->email,
+                'account_status' => $updatedEmployee->account_status,
+                'department_id' => $updatedEmployee->department_id,
+                'location_id' => $updatedEmployee->location_id,
             ],
         ]);
     }
