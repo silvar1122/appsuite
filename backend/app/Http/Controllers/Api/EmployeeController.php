@@ -85,4 +85,51 @@ class EmployeeController extends Controller
             'password_setup_email_sent' => $setupEmailSent,
         ], 201);
     }
+
+    public function index(Request $request): JsonResponse
+    {
+        $manager = $request->user();
+
+        if (!$manager instanceof User) {
+            abort(401);
+        }
+
+        if (!$manager->hasPermission('employees.view_all')) {
+            abort(403);
+        }
+
+        $paginator = User::query()
+            ->with('roles:id,name,slug')
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->orderBy('id')
+            ->paginate(25);
+
+        return response()->json([
+            'data' => $paginator->getCollection()
+                ->map(fn(User $employee) => [
+                    'id' => $employee->id,
+                    'first_name' => $employee->first_name,
+                    'last_name' => $employee->last_name,
+                    'email' => $employee->email,
+                    'account_status' => $employee->account_status,
+                    'department_id' => $employee->department_id,
+                    'location_id' => $employee->location_id,
+                    'roles' => $employee->roles
+                        ->map(fn(Role $role) => [
+                            'id' => $role->id,
+                            'name' => $role->name,
+                            'slug' => $role->slug,
+                        ])
+                        ->values(),
+                ])
+                ->values(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ]);
+    }
 }

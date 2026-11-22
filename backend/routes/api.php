@@ -84,5 +84,8 @@ Route::middleware([
     Route::post('/employees', [EmployeeController::class, 'store'])
     ->middleware('permission:employees.create');
 
+    Route::get('/employees', [EmployeeController::class, 'index'])
+    ->middleware('permission:employees.view_all');
+
 
 });
