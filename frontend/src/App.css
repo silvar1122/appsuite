@@ -135,4 +135,13 @@ button:disabled {
   .form-card {
     padding: 22px;
   }
+
+  .secondary-button {
+  color: #102a50;
+  background: #e7edf5;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #d8e2ef;
+}
 }

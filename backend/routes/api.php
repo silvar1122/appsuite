@@ -15,17 +15,15 @@ use App\Http\Controllers\Api\EmployeeController;
 
 Route::get('/user', function (Request $request) {
     $user = $request->user();
-    $requiresMfa = $user->requiresMfa();
-    $mfaConfirmed = $user->hasConfirmedTwoFactor();
-
+   
     return response()->json([
         'id' => $user->id,
         'first_name' => $user->first_name,
         'last_name' => $user->last_name,
         'email' => $user->email,
-        'requires_mfa' => $requiresMfa,
-        'mfa_confirmed' => $mfaConfirmed,
-        'mfa_setup_required' => $requiresMfa && !$mfaConfirmed,
+        'roles' => $user->roles()->orderBy('slug')->pluck('slug'),
+        'requires_mfa' => $user->requiresMfa(),
+        'mfa_confirmed' => $user->hasConfirmedTwoFactor(),
     ]);
 })->middleware(['auth:sanctum', 'account.active']);
 
