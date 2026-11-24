@@ -1,112 +1,185 @@
 function getCookie(name) {
-  const prefix = `${name}=`
-  const cookie = document.cookie
-    .split('; ')
-    .find((item) => item.startsWith(prefix))
+    const prefix = `${name}=`
+    const cookie = document.cookie
+        .split('; ')
+        .find((item) => item.startsWith(prefix))
 
-  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : ''
+    return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : ''
 }
 
 function errorMessage(response, data, fallback) {
-  if (response.status === 429) {
-    return 'Too many attempts. Please wait and try again.'
-  }
+    if (response.status === 429) {
+        return 'Too many attempts. Please wait and try again.'
+    }
 
-  if (response.status === 422) {
-    return Object.values(data?.errors ?? {}).flat()[0] ?? fallback
-  }
+    if (response.status === 422) {
+        return Object.values(data?.errors ?? {}).flat()[0] ?? fallback
+    }
 
-  return data?.message ?? fallback
+    return data?.message ?? fallback
 }
 
 async function postJson(path, payload) {
-  const csrfResponse = await fetch('/sanctum/csrf-cookie', {
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
-  })
+    const csrfResponse = await fetch('/sanctum/csrf-cookie', {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+    })
 
-  const csrfToken = getCookie('XSRF-TOKEN')
+    const csrfToken = getCookie('XSRF-TOKEN')
 
-  if (!csrfResponse.ok || !csrfToken) {
-    throw new Error('Could not start a secure session. Please try again.')
-  }
+    if (!csrfResponse.ok || !csrfToken) {
+        throw new Error('Could not start a secure session. Please try again.')
+    }
 
-  const response = await fetch(path, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'X-XSRF-TOKEN': csrfToken,
-    },
-    body: JSON.stringify(payload),
-  })
+    const response = await fetch(path, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-XSRF-TOKEN': csrfToken,
+        },
+        body: JSON.stringify(payload),
+    })
 
-  const data = await response.json().catch(() => null)
+    const data = await response.json().catch(() => null)
 
-  return { response, data }
+    return { response, data }
+}
+
+async function getJson(path, fallback) {
+    const response = await fetch(path, {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+    })
+
+    const data = await response.json().catch(() => null)
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, fallback))
+    }
+
+    return data
 }
 
 export async function getCurrentUser() {
-  const response = await fetch('/api/user', {
-    credentials: 'include',
-    headers: { Accept: 'application/json' },
-  })
+    const response = await fetch('/api/user', {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+    })
 
-  if (response.status === 401) {
-    //not authorized
-    return null
-  }
+    if (response.status === 401) {
+        //not authorized
+        return null
+    }
 
-  const data = await response.json().catch(() => null)
+    const data = await response.json().catch(() => null)
 
-  if (!response.ok) {
-    throw new Error(data?.message ?? 'Could not load the current session.')
-  }
+    if (!response.ok) {
+        throw new Error(data?.message ?? 'Could not load the current session.')
+    }
 
-  return data
+    return data
 }
 
 export async function signIn(email, password) {
-  const { response, data } = await postJson('/login', { email, password })
+    const { response, data } = await postJson('/login', { email, password })
 
-  if (response.status === 204) {
-    return { challengeRequired: true, user: null }
-  }
+    if (response.status === 204) {
+        return { challengeRequired: true, user: null }
+    }
 
-  if (!response.ok) {
-    throw new Error(errorMessage(response, data, 'Sign-in failed.'))
-  }
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Sign-in failed.'))
+    }
 
-  const user = await getCurrentUser()
+    const user = await getCurrentUser()
 
-  if (!user) {
-    throw new Error('Sign-in did not establish a session. Please try again.')
-  }
+    if (!user) {
+        throw new Error('Sign-in did not establish a session. Please try again.')
+    }
 
-  return { challengeRequired: false, user }
+    return { challengeRequired: false, user }
 }
 
 export async function submitTwoFactorCode(code) {
-  const { response, data } = await postJson('/two-factor-challenge', { code })
+    const { response, data } = await postJson('/two-factor-challenge', { code })
 
-  if (!response.ok) {
-    throw new Error(errorMessage(response, data, 'The authentication code was not accepted.'))
-  }
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'The authentication code was not accepted.'))
+    }
 
-  const user = await getCurrentUser()
+    const user = await getCurrentUser()
 
-  if (!user) {
-    throw new Error('Authentication is still pending. Please try the code again.')
-  }
+    if (!user) {
+        throw new Error('Authentication is still pending. Please try the code again.')
+    }
 
-  return user
+    return user
 }
 
 export async function signOut() {
-  const { response, data } = await postJson('/logout', {})
+    const { response, data } = await postJson('/logout', {})
 
-  if (!response.ok) {
-    throw new Error(errorMessage(response, data, 'Could not sign out.'))
-  }
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not sign out.'))
+    }
+}
+
+export async function confirmPassword(password) {
+    const { response, data } = await postJson('/user/confirm-password', {
+        password,
+    })
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Password confirmation failed.'))
+    }
+}
+
+export async function enableTwoFactor() {
+    const { response, data } = await postJson('/user/two-factor-authentication', {})
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not start MFA setup.'))
+    }
+}
+
+export async function getTwoFactorSetup() {
+    const [qrData, secretData] = await Promise.all([
+        getJson('/user/two-factor-qr-code', 'Could not load the QR code.'),
+        getJson('/user/two-factor-secret-key', 'Could not load the manual setup key.'),
+    ])
+
+    if (!qrData?.svg || !secretData?.secretKey) {
+        throw new Error('MFA setup details are unavailable. Please try again.')
+    }
+
+    return {
+        qrSvg: qrData.svg,
+        secretKey: secretData.secretKey,
+    }
+}
+
+export async function confirmTwoFactor(code) {
+    const { response, data } = await postJson(
+        '/user/confirmed-two-factor-authentication',
+        { code },
+    )
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'The authentication code was not accepted.'))
+    }
+}
+
+export async function getRecoveryCodes() {
+    const codes = await getJson(
+        '/user/two-factor-recovery-codes',
+        'Could not load recovery codes.',
+    )
+
+    if (!Array.isArray(codes)) {
+        throw new Error('Recovery codes are unavailable. Please try again.')
+    }
+
+    return codes
 }
