@@ -144,4 +144,45 @@ button:disabled {
 .secondary-button:hover:not(:disabled) {
   background: #d8e2ef;
 }
+
+.mfa-qr {
+  display: block;
+  width: min(100%, 240px);
+  height: auto;
+  margin: 18px auto;
+}
+
+.secret-key {
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: #f3f6fb;
+}
+
+.recovery-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  padding: 0;
+  list-style: none;
+}
+
+.recovery-codes li {
+  padding: 10px;
+  background: #f3f6fb;
+  text-align: center;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 18px;
+  line-height: 1.45;
+}
+
+.checkbox-field input {
+  width: auto;
+  min-height: auto;
+  margin-top: 4px;
+}
 }
