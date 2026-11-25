@@ -5,6 +5,7 @@ import SetPasswordPage from './pages/SetPasswordPage'
 import LoginPage from './pages/LoginPage'
 import TwoFactorChallengePage from './pages/TwoFactorChallengePage'
 import MfaSetupPage from './pages/MfaSetupPage'
+import AccountPage from './pages/AccountPage'
 
 
 
@@ -13,35 +14,6 @@ import MfaSetupPage from './pages/MfaSetupPage'
 
 
 
-function AccountPage({ user, onSignOut, signingOut, error }) {
-  const requiresSetup = user.requires_mfa && !user.mfa_confirmed
-
-  return (
-    <section className="form-card">
-      <h1>{requiresSetup ? 'MFA setup required' : 'Signed in'}</h1>
-      <p className="intro">
-        Signed in as {user.first_name} {user.last_name}.
-      </p>
-
-      {requiresSetup ? (
-        <p className="notice">
-          Set up your authenticator app before using protected asset features.
-          We’ll add the enrollment screen next.
-        </p>
-      ) : (
-        <p className="notice">
-          Authentication is working. Asset pages will be added next.
-        </p>
-      )}
-
-      {error && <p className="notice error" role="alert">{error}</p>}
-
-      <button type="button" onClick={onSignOut} disabled={signingOut}>
-        {signingOut ? 'Signing out…' : 'Sign out'}
-      </button>
-    </section>
-  )
-}
 
 
 function App() {
