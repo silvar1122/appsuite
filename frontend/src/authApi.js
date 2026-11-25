@@ -183,3 +183,13 @@ export async function getRecoveryCodes() {
 
     return codes
 }
+
+export async function requestPasswordReset(email) {
+    const { response, data } = await postJson('/forgot-password', { email })
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not request a password reset.'))
+    }
+
+    return data?.status ?? 'If the address is registered, a password reset email will be sent.'
+}

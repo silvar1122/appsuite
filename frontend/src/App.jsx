@@ -1,32 +1,25 @@
 import { useEffect, useState } from 'react'
-import {getCurrentUser, signIn, signOut, submitTwoFactorCode} from './authApi'
+import { getCurrentUser, signIn, signOut, submitTwoFactorCode, requestPasswordReset } from './authApi'
 import './App.css'
 import SetPasswordPage from './pages/SetPasswordPage'
 import LoginPage from './pages/LoginPage'
 import TwoFactorChallengePage from './pages/TwoFactorChallengePage'
 import MfaSetupPage from './pages/MfaSetupPage'
 import AccountPage from './pages/AccountPage'
-
-
-
-
-
-
-
-
-
+import ForgotPasswordPage from './pages/ForgotPasswordPage'
 
 function App() {
   const isSetPasswordPage = window.location.pathname === '/set-password'
+  const isForgotPasswordPage = window.location.pathname === '/forgot-password'
 
   const [user, setUser] = useState(null)
-  const [checkingSession, setCheckingSession] = useState(!isSetPasswordPage)
+  const [checkingSession, setCheckingSession] = useState(!isSetPasswordPage && !isForgotPasswordPage)
   const [challengeRequired, setChallengeRequired] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    if (isSetPasswordPage) return
+    if (isSetPasswordPage || isForgotPasswordPage) return
 
     let active = true
 
@@ -44,7 +37,7 @@ function App() {
     return () => {
       active = false
     }
-  }, [isSetPasswordPage])
+  }, [isSetPasswordPage, isForgotPasswordPage])
 
   async function handleSignIn(email, password) {
     setError('')
@@ -56,6 +49,21 @@ function App() {
       setUser(result.user)
     } catch (requestError) {
       setError(requestError.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handlePasswordResetRequest(email) {
+    setError('')
+    setSubmitting(true)
+
+    try {
+      await requestPasswordReset(email)
+      return true
+    } catch (requestError) {
+      setError(requestError.message)
+      return false
     } finally {
       setSubmitting(false)
     }
@@ -95,7 +103,18 @@ function App() {
 
   if (isSetPasswordPage) {
     page = <SetPasswordPage />
-  } else if (checkingSession) {
+  }else if (isForgotPasswordPage) {
+    page = (
+      <ForgotPasswordPage
+        onSubmit={handlePasswordResetRequest}
+        onBack={() => {
+          window.location.href = '/'
+        }}
+        submitting={submitting}
+        error={error}
+      />
+    )
+  }else if (checkingSession) {
     page = <section className="form-card"><p>Checking your session…</p></section>
   } else if (challengeRequired) {
     page = (
