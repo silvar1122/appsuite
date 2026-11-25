@@ -44,7 +44,7 @@ export default function LoginPage({ onSubmit, submitting, error }) {
                     {submitting ? 'Signing in…' : 'Sign in'}
                 </button>
 
-                <a className="text-link" href="/forgot-password">
+                <a className="text-link" href="/request-password-reset">
                     Forgot your password?
                 </a>
             </form>

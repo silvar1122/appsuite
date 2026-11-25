@@ -10,7 +10,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage'
 
 function App() {
   const isSetPasswordPage = window.location.pathname === '/set-password'
-  const isForgotPasswordPage = window.location.pathname === '/forgot-password'
+  const isForgotPasswordPage = window.location.pathname === '/request-password-reset'
 
   const [user, setUser] = useState(null)
   const [checkingSession, setCheckingSession] = useState(!isSetPasswordPage && !isForgotPasswordPage)

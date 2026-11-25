@@ -24,4 +24,4 @@ RUN composer install --no-interaction --prefer-dist --no-progress
 
 EXPOSE 8000
 
-CMD ["php", "-S", "0.0.0.0:8000", "vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php"]
+CMD ["php", "-S", "0.0.0.0:8000", "-t", "public", "public/index.php"]

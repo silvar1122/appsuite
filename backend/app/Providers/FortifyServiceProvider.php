@@ -15,6 +15,9 @@ use Laravel\Fortify\Actions\RedirectIfTwoFactorAuthenticatable;
 use Laravel\Fortify\Fortify;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Http\Responses\PasswordResetLinkResponse;
+use Laravel\Fortify\Contracts\FailedPasswordResetLinkRequestResponse;
+use Laravel\Fortify\Contracts\SuccessfulPasswordResetLinkRequestResponse;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -24,6 +27,15 @@ class FortifyServiceProvider extends ServiceProvider
     public function register(): void
     {
         //
+        $this->app->bind(
+            SuccessfulPasswordResetLinkRequestResponse::class,
+            PasswordResetLinkResponse::class,
+        );
+
+        $this->app->bind(
+            FailedPasswordResetLinkRequestResponse::class,
+            PasswordResetLinkResponse::class,
+        );
     }
 
     /**
