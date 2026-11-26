@@ -85,7 +85,7 @@ export async function getCurrentUser() {
 export async function signIn(email, password) {
     const { response, data } = await postJson('/login', { email, password })
 
-    if (response.status === 204) {
+    if (response.status === 204 || data?.two_factor === true) {
         return { challengeRequired: true, user: null }
     }
 
@@ -102,20 +102,32 @@ export async function signIn(email, password) {
     return { challengeRequired: false, user }
 }
 
-export async function submitTwoFactorCode(code) {
-    const { response, data } = await postJson('/two-factor-challenge', { code })
+async function completeTwoFactorChallenge(payload) {
+    const { response, data } = await postJson('/two-factor-challenge', payload)
 
-    if (!response.ok) {
+    if (response.redirected) {
+        throw new Error('Your sign-in challenge expired. Please sign in again.')
+    }
+
+    if (response.status !== 204) {
         throw new Error(errorMessage(response, data, 'The authentication code was not accepted.'))
     }
 
     const user = await getCurrentUser()
 
     if (!user) {
-        throw new Error('Authentication is still pending. Please try the code again.')
+        throw new Error('Authentication is still pending. Please try again.')
     }
 
     return user
+}
+
+export async function submitTwoFactorCode(code) {
+    return completeTwoFactorChallenge({ code })
+}
+
+export async function submitTwoFactorRecoveryCode(recoveryCode) {
+    return completeTwoFactorChallenge({ recovery_code: recoveryCode })
 }
 
 export async function signOut() {

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getCurrentUser, signIn, signOut, submitTwoFactorCode, requestPasswordReset } from './authApi'
+import { getCurrentUser, signIn, signOut, requestPasswordReset, submitTwoFactorCode, submitTwoFactorRecoveryCode } from './authApi'
 import './App.css'
 import SetPasswordPage from './pages/SetPasswordPage'
 import LoginPage from './pages/LoginPage'
@@ -54,6 +54,8 @@ function App() {
     }
   }
 
+  
+
   async function handlePasswordResetRequest(email) {
     setError('')
     setSubmitting(true)
@@ -69,16 +71,21 @@ function App() {
     }
   }
 
-  async function handleTwoFactor(code) {
+  async function handleTwoFactor(credential, method) {
     setError('')
     setSubmitting(true)
 
     try {
-      const currentUser = await submitTwoFactorCode(code)
+      const currentUser = method === 'recovery'
+        ? await submitTwoFactorRecoveryCode(credential)
+        : await submitTwoFactorCode(credential)
+
       setUser(currentUser)
       setChallengeRequired(false)
+      return true
     } catch (requestError) {
       setError(requestError.message)
+      return false
     } finally {
       setSubmitting(false)
     }
@@ -103,7 +110,7 @@ function App() {
 
   if (isSetPasswordPage) {
     page = <SetPasswordPage />
-  }else if (isForgotPasswordPage) {
+  } else if (isForgotPasswordPage) {
     page = (
       <ForgotPasswordPage
         onSubmit={handlePasswordResetRequest}
@@ -114,12 +121,13 @@ function App() {
         error={error}
       />
     )
-  }else if (checkingSession) {
+  } else if (checkingSession) {
     page = <section className="form-card"><p>Checking your session…</p></section>
   } else if (challengeRequired) {
     page = (
       <TwoFactorChallengePage
         onSubmit={handleTwoFactor}
+        onMethodChange={() => setError('')}
         onBack={() => {
           setChallengeRequired(false)
           setError('')
