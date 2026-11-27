@@ -7,6 +7,7 @@ import TwoFactorChallengePage from './pages/TwoFactorChallengePage'
 import MfaSetupPage from './pages/MfaSetupPage'
 import AccountPage from './pages/AccountPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
+import AssetsPage from './pages/AssetsPage'
 
 function App() {
   const isSetPasswordPage = window.location.pathname === '/set-password'
@@ -54,7 +55,7 @@ function App() {
     }
   }
 
-  
+
 
   async function handlePasswordResetRequest(email) {
     setError('')
@@ -148,7 +149,7 @@ function App() {
     page = <MfaSetupPage onComplete={setUser} />
   } else {
     page = (
-      <AccountPage
+      <AssetsPage
         user={user}
         onSignOut={handleSignOut}
         signingOut={submitting}

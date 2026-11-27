@@ -82,6 +82,19 @@ export async function getCurrentUser() {
     return data
 }
 
+export async function getAssets(page = 1) {
+    const result = await getJson(
+        `/api/assets?page=${encodeURIComponent(page)}`,
+        'Could not load assets.',
+    )
+
+    if (!Array.isArray(result?.data) || !result?.meta) {
+        throw new Error('The asset list response was invalid.')
+    }
+
+    return result
+}
+
 export async function signIn(email, password) {
     const { response, data } = await postJson('/login', { email, password })
 

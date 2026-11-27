@@ -197,3 +197,56 @@ button:disabled {
     outline: 3px solid #7c9cc4;
     outline-offset: 3px;
   }
+
+
+  /* assets */
+  .asset-page {
+  display: grid;
+  gap: 18px;
+}
+
+.asset-page .form-card {
+  max-width: none;
+}
+
+.asset-page h2 {
+  margin-top: 0;
+  color: #102a50;
+}
+
+.asset-list {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.asset-item {
+  padding: 14px;
+  background: #f3f6fb;
+  border: 1px solid #d7e0ec;
+  border-radius: 4px;
+}
+
+.asset-item h3 {
+  margin: 0 0 8px;
+  color: #102a50;
+}
+
+.asset-item p {
+  margin: 6px 0;
+}
+
+.asset-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.asset-pagination button {
+  width: auto;
+  margin-top: 0;
+  padding: 0 14px;
+}
