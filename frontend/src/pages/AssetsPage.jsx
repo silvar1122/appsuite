@@ -1,13 +1,30 @@
 import { useEffect, useState } from 'react'
-import { getAssets } from '../authApi'
+import { createAsset, getAssets } from '../authApi'
 import '../App.css'
+
+const emptyForm = {
+  asset_tag: '',
+  type: '',
+  manufacturer: '',
+  model: '',
+  serial_number: '',
+}
 
 export default function AssetsPage({ user, onSignOut, signingOut, error }) {
   const [assets, setAssets] = useState([])
   const [meta, setMeta] = useState(null)
   const [page, setPage] = useState(1)
+  const [reloadKey, setReloadKey] = useState(0)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [form, setForm] = useState(emptyForm)
+  const [creating, setCreating] = useState(false)
+  const [createError, setCreateError] = useState('')
+  const [createdMessage, setCreatedMessage] = useState('')
+
+  const canCreateAssets = user.roles?.includes('asset_manager') ?? false
+  
 
   useEffect(() => {
     let active = true
@@ -31,7 +48,40 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
     return () => {
       active = false
     }
-  }, [page])
+  }, [page, reloadKey])
+
+  function handleFieldChange(event) {
+    const { name, value } = event.target
+    setForm((current) => ({ ...current, [name]: value }))
+  }
+
+  async function handleCreateAsset(event) {
+    event.preventDefault()
+    setCreating(true)
+    setCreateError('')
+    setCreatedMessage('')
+
+    const payload = {
+      asset_tag: form.asset_tag.trim(),
+      type: form.type.trim(),
+      manufacturer: form.manufacturer.trim() || null,
+      model: form.model.trim() || null,
+      serial_number: form.serial_number.trim() || null,
+    }
+
+    try {
+      const asset = await createAsset(payload)
+      setForm(emptyForm)
+      setShowCreateForm(false)
+      setCreatedMessage(`Asset ${asset.asset_tag} was registered.`)
+      setPage(1)
+      setReloadKey((current) => current + 1)
+    } catch (requestError) {
+      setCreateError(requestError.message)
+    } finally {
+      setCreating(false)
+    }
+  }
 
   return (
     <div className="asset-page">
@@ -43,13 +93,97 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
 
         {error && <p className="notice error" role="alert">{error}</p>}
 
+        {canCreateAssets && (
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => {
+              setShowCreateForm((current) => !current)
+              setCreateError('')
+            }}
+          >
+            {showCreateForm ? 'Close form' : 'Register asset'}
+          </button>
+        )}
+
         <button type="button" onClick={onSignOut} disabled={signingOut}>
           {signingOut ? 'Signing out…' : 'Sign out'}
         </button>
       </section>
 
+      {showCreateForm && canCreateAssets && (
+        <section className="form-card" aria-labelledby="register-asset-heading">
+          <h2 id="register-asset-heading">Register an asset</h2>
+
+          <form onSubmit={handleCreateAsset}>
+            <label className="field">
+              <span>Asset tag</span>
+              <input
+                name="asset_tag"
+                value={form.asset_tag}
+                onChange={handleFieldChange}
+                maxLength={50}
+                required
+              />
+            </label>
+
+            <label className="field">
+              <span>Type</span>
+              <input
+                name="type"
+                value={form.type}
+                onChange={handleFieldChange}
+                maxLength={100}
+                placeholder="Laptop, monitor, phone…"
+                required
+              />
+            </label>
+
+            <label className="field">
+              <span>Manufacturer</span>
+              <input
+                name="manufacturer"
+                value={form.manufacturer}
+                onChange={handleFieldChange}
+                maxLength={120}
+              />
+            </label>
+
+            <label className="field">
+              <span>Model</span>
+              <input
+                name="model"
+                value={form.model}
+                onChange={handleFieldChange}
+                maxLength={120}
+              />
+            </label>
+
+            <label className="field">
+              <span>Serial number</span>
+              <input
+                name="serial_number"
+                value={form.serial_number}
+                onChange={handleFieldChange}
+                maxLength={120}
+              />
+            </label>
+
+            {createError && (
+              <p className="notice error" role="alert">{createError}</p>
+            )}
+
+            <button type="submit" disabled={creating}>
+              {creating ? 'Registering…' : 'Save asset'}
+            </button>
+          </form>
+        </section>
+      )}
+
       <section className="form-card" aria-labelledby="assets-heading">
         <h2 id="assets-heading">Assets</h2>
+
+        {createdMessage && <p className="notice" role="status">{createdMessage}</p>}
 
         {loading ? (
           <p role="status">Loading assets…</p>
@@ -87,9 +221,7 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
               >
                 Previous
               </button>
-              <span>
-                Page {meta.current_page} of {meta.last_page}
-              </span>
+              <span>Page {meta.current_page} of {meta.last_page}</span>
               <button
                 type="button"
                 className="secondary-button"

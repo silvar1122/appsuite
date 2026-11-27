@@ -95,6 +95,20 @@ export async function getAssets(page = 1) {
     return result
 }
 
+export async function createAsset(asset) {
+    const { response, data } = await postJson('/api/assets', asset)
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not register the asset.'))
+    }
+
+    if (!data?.data) {
+        throw new Error('The asset response was invalid.')
+    }
+
+    return data.data
+}
+
 export async function signIn(email, password) {
     const { response, data } = await postJson('/login', { email, password })
 
