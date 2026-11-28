@@ -49,7 +49,7 @@
   font-weight: 600;
 }
 
-.field input {
+.field input,.field select {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
@@ -59,7 +59,7 @@
   border-radius: 4px;
 }
 
-.field input:focus {
+.field input:focus,.field select:focus {
   border-color: #102a50;
   outline: 3px solid #c9d8ee;
 }

@@ -109,6 +109,36 @@ export async function createAsset(asset) {
     return data.data
 }
 
+export async function getEmployees(page = 1) {
+    const result = await getJson(
+        `/api/employees?page=${encodeURIComponent(page)}`,
+        'Could not load employees.',
+    )
+
+    if (!Array.isArray(result?.data) || !result?.meta) {
+        throw new Error('The employee list response was invalid.')
+    }
+
+    return result
+}
+
+export async function assignAsset(assetId, employeeId) {
+    const { response, data } = await postJson(
+        `/api/assets/${encodeURIComponent(assetId)}/assignments`,
+        { employee_id: employeeId },
+    )
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not assign the asset.'))
+    }
+
+    if (!data?.data) {
+        throw new Error('The assignment response was invalid.')
+    }
+
+    return data.data
+}
+
 export async function signIn(email, password) {
     const { response, data } = await postJson('/login', { email, password })
 
