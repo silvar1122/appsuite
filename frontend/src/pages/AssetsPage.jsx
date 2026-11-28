@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { assignAsset, createAsset, getAssets, getEmployees } from '../authApi'
+import { assignAsset, createAsset, getAssets, getEmployees, returnAsset } from '../authApi'
 import '../App.css'
 
 const emptyForm = {
@@ -30,6 +30,11 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
     const [assignedMessage, setAssignedMessage] = useState('')
     const [loadingEmployees, setLoadingEmployees] = useState(false)
     const [employeesError, setEmployeesError] = useState('')
+    const [returningAssignmentId, setReturningAssignmentId] = useState(null)
+    const [returnReason, setReturnReason] = useState('')
+    const [returning, setReturning] = useState(false)
+    const [returnError, setReturnError] = useState('')
+    const [returnedMessage, setReturnedMessage] = useState('')
 
     const canCreateAssets = user.roles?.includes('asset_manager') ?? false
 
@@ -151,6 +156,35 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
         }
     }
 
+    async function handleReturnAsset(event) {
+        event.preventDefault()
+
+        if (!returningAssignmentId || !returnReason.trim()) return
+
+        setReturning(true)
+        setReturnError('')
+        setReturnedMessage('')
+
+        try {
+            const asset = assets.find(
+                (item) => item.current_assignment?.id === returningAssignmentId,
+            )
+
+            await returnAsset(returningAssignmentId, returnReason.trim())
+
+            setReturnedMessage(
+                `${asset?.asset_tag ?? 'Asset'} was returned.`,
+            )
+            setReturningAssignmentId(null)
+            setReturnReason('')
+            setReloadKey((current) => current + 1)
+        } catch (requestError) {
+            setReturnError(requestError.message)
+        } finally {
+            setReturning(false)
+        }
+    }
+
     return (
         <div className="asset-page">
             <section className="form-card">
@@ -254,6 +288,7 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
                 {employeesError && <p className="notice error" role="alert">{employeesError}</p>}
 
                 {createdMessage && <p className="notice" role="status">{createdMessage}</p>}
+                {returnedMessage && <p className="notice" role="status">{returnedMessage}</p>}
 
                 {loading ? (
                     <p role="status">Loading assets…</p>
@@ -334,6 +369,57 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
                                                     }}
                                                 >
                                                     Assign asset
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+
+                                    {canCreateAssets && asset.current_assignment && (
+                                        <>
+                                            {returningAssignmentId === asset.current_assignment.id ? (
+                                                <form onSubmit={handleReturnAsset}>
+                                                    <label className="field">
+                                                        <span>Reason for return</span>
+                                                        <textarea
+                                                            value={returnReason}
+                                                            onChange={(event) => setReturnReason(event.target.value)}
+                                                            maxLength={1000}
+                                                            required
+                                                        />
+                                                    </label>
+
+                                                    {returnError && (
+                                                        <p className="notice error" role="alert">{returnError}</p>
+                                                    )}
+
+                                                    <button type="submit" disabled={returning || !returnReason.trim()}>
+                                                        {returning ? 'Returning…' : 'Confirm return'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="secondary-button"
+                                                        onClick={() => {
+                                                            setReturningAssignmentId(null)
+                                                            setReturnReason('')
+                                                            setReturnError('')
+                                                        }}
+                                                        disabled={returning}
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </form>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="secondary-button"
+                                                    onClick={() => {
+                                                        setReturningAssignmentId(asset.current_assignment.id)
+                                                        setReturnReason('')
+                                                        setReturnError('')
+                                                        setReturnedMessage('')
+                                                    }}
+                                                >
+                                                    Return asset
                                                 </button>
                                             )}
                                         </>

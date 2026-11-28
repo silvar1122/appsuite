@@ -96,6 +96,7 @@ class AssetController extends Controller
             'serial_number' => $asset->serial_number,
             'status' => $asset->status,
             'current_assignment' => $assignment ? [
+                'id' => $assignment->id,
                 'employee' => [
                     'id' => $assignment->user->id,
                     'first_name' => $assignment->user->first_name,

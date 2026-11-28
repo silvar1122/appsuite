@@ -49,7 +49,7 @@
   font-weight: 600;
 }
 
-.field input,.field select {
+.field input,.field select, .field textarea {
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
@@ -59,9 +59,14 @@
   border-radius: 4px;
 }
 
-.field input:focus,.field select:focus {
+.field input:focus,.field select:focus, .field textarea:focus {
   border-color: #102a50;
   outline: 3px solid #c9d8ee;
+}
+
+.field textarea {
+  min-height: 100px;
+  resize: vertical;
 }
 
 .field input[readonly] {

@@ -62,6 +62,34 @@ async function getJson(path, fallback) {
     return data
 }
 
+async function patchJson(path, payload) {
+    const csrfResponse = await fetch('/sanctum/csrf-cookie', {
+        credentials: 'include',
+        headers: { Accept: 'application/json' },
+    })
+
+    const csrfToken = getCookie('XSRF-TOKEN')
+
+    if (!csrfResponse.ok || !csrfToken) {
+        throw new Error('Could not start a secure session. Please try again.')
+    }
+
+    const response = await fetch(path, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-XSRF-TOKEN': csrfToken,
+        },
+        body: JSON.stringify(payload),
+    })
+
+    const data = await response.json().catch(() => null)
+
+    return { response, data }
+}
+
 export async function getCurrentUser() {
     const response = await fetch('/api/user', {
         credentials: 'include',
@@ -134,6 +162,23 @@ export async function assignAsset(assetId, employeeId) {
 
     if (!data?.data) {
         throw new Error('The assignment response was invalid.')
+    }
+
+    return data.data
+}
+
+export async function returnAsset(assignmentId, returnReason) {
+    const { response, data } = await patchJson(
+        `/api/assignments/${encodeURIComponent(assignmentId)}/return`,
+        { return_reason: returnReason },
+    )
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not return the asset.'))
+    }
+
+    if (!data?.data) {
+        throw new Error('The return response was invalid.')
     }
 
     return data.data
