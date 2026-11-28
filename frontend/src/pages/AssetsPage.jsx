@@ -196,6 +196,12 @@ export default function AssetsPage({ user, onSignOut, signingOut, error }) {
                 {error && <p className="notice error" role="alert">{error}</p>}
 
                 {canCreateAssets && (
+                    <a className="text-link" href="/employees">
+                        Manage employees
+                    </a>
+                )}
+
+                {canCreateAssets && (
                     <button
                         type="button"
                         className="secondary-button"

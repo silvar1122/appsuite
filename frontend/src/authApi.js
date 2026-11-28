@@ -184,6 +184,57 @@ export async function returnAsset(assignmentId, returnReason) {
     return data.data
 }
 
+export async function createEmployee(employee) {
+    const { response, data } = await postJson('/api/employees', employee)
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not create the employee.'))
+    }
+
+    if (!data?.data) {
+        throw new Error('The employee response was invalid.')
+    }
+
+    return {
+        employee: data.data,
+        passwordSetupEmailSent: data.password_setup_email_sent,
+    }
+}
+
+export async function updateEmployee(employeeId, changes) {
+    const { response, data } = await patchJson(
+        `/api/employees/${encodeURIComponent(employeeId)}`,
+        changes,
+    )
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not update the employee.'))
+    }
+
+    if (!data?.data) {
+        throw new Error('The employee response was invalid.')
+    }
+
+    return data.data
+}
+
+export async function deactivateEmployee(employeeId) {
+    const { response, data } = await postJson(
+        `/api/employees/${encodeURIComponent(employeeId)}/deactivate`,
+        {},
+    )
+
+    if (!response.ok) {
+        throw new Error(errorMessage(response, data, 'Could not deactivate the employee.'))
+    }
+
+    if (!data?.data) {
+        throw new Error('The employee response was invalid.')
+    }
+
+    return data.data
+}
+
 export async function signIn(email, password) {
     const { response, data } = await postJson('/login', { email, password })
 

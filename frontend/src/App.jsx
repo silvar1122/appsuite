@@ -8,10 +8,13 @@ import MfaSetupPage from './pages/MfaSetupPage'
 import AccountPage from './pages/AccountPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import AssetsPage from './pages/AssetsPage'
+import EmployeesPage from './pages/EmployeesPage'
 
 function App() {
   const isSetPasswordPage = window.location.pathname === '/set-password'
   const isForgotPasswordPage = window.location.pathname === '/request-password-reset'
+  const isEmployeesPage = window.location.pathname === '/employees'
+
 
   const [user, setUser] = useState(null)
   const [checkingSession, setCheckingSession] = useState(!isSetPasswordPage && !isForgotPasswordPage)
@@ -137,7 +140,9 @@ function App() {
         error={error}
       />
     )
-  } else if (!user) {
+  }
+
+  else if (!user) {
     page = (
       <LoginPage
         onSubmit={handleSignIn}
@@ -147,7 +152,12 @@ function App() {
     )
   } else if (user.requires_mfa && !user.mfa_confirmed) {
     page = <MfaSetupPage onComplete={setUser} />
-  } else {
+
+  } else if (isEmployeesPage) {
+    page = <EmployeesPage user={user} />
+
+  }
+  else {
     page = (
       <AssetsPage
         user={user}
